@@ -1,0 +1,670 @@
+#include <EEPROM.h>
+#include <Wire.h>
+#include <SFE_MicroOLED.h>
+#include <TimerOne.h>
+#include <Adafruit_SSD1306.h>
+
+#define PIN_RESET 9  // Connect RST to pin 9
+#define PIN_DC    8  // Connect DC to pin 8
+#define PIN_CS    10 // Connect CS to pin 10
+#define DC_JUMPER 1
+
+#define OLED_RESET 4
+Adafruit_SSD1306 display(OLED_RESET); //Switches to SSD1306 LED
+//MicroOLED oled(OLED_RESET); //Switches to MicroOLED
+
+String d1="Drink 1";
+String d2="Drink 2";
+String d3="Drink 3";
+String d4="Drink 4";
+String d5="Drink 5";
+String d6="Drink 6";
+String l1="liquid 1";
+String l2="liquid 2";
+String l3="liquid 3";
+
+int anaX=0;
+int anaY=1;
+int xval=0;
+int yval=0;
+int xout=0;
+int yout=0;
+int s=0;
+int p=0;
+int z=0;
+int m=0;
+int l1val=0;
+int l2val=0;
+int l3val=0;
+/*int d1amt[3];
+int d2amt[3];
+int d3amt[3];
+int d4amt[3];
+int d5amt[3];
+int d6amt[3];*/
+int button;
+int addr;
+int d1addr=0;
+int d2addr=12;
+int d3addr=24;
+int d4addr=48;
+int d5addr=60;
+int d6addr=72;
+int lmotor=3;
+int mmotor=4;
+int rmotor=5;
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  /*while(!Serial){
+    ;
+  }*/
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  display.clearDisplay();
+  display.display();
+  //delay(1000);
+  display.clearDisplay();
+  pinMode(2, INPUT_PULLUP);
+  pinMode(lmotor, OUTPUT);
+  pinMode(mmotor,OUTPUT);
+  pinMode(rmotor,OUTPUT);
+  //Timer1.initialize(150000);
+  //Timer1.attachInterrupt(drinksel);
+}
+
+void loop() {
+digitalWrite(lmotor,HIGH);
+digitalWrite(mmotor,HIGH);
+digitalWrite(rmotor,HIGH);
+  // put your main code here, to run repeatedly:
+  display.setTextSize(0);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  for(;;){
+    anaControl();
+    if(yval>=950) m--;
+    if(yval<=100) m++;
+    
+    menu();
+    button=digitalRead(2);
+    
+    if(m==0 && button==LOW){
+      button=HIGH;
+      break;
+    }
+
+    if(m==1 && button==LOW){
+      menu1();
+      button=1;
+    }
+    if(m==2 && button==LOW){
+      //needs another menu for this
+      button=1;
+    }
+    if(m>2) m=0;
+    if(m<0) m=2;
+  }
+  //delay(300);
+  //display.clearDisplay();
+  
+  for(p=0;-1<p<6;){
+    anaControl();
+    if(xval>=950) p++;
+    if(xval<=100) p--;
+    if(yval>=950) z--;
+    if(yval<=100) z++;
+    
+    if(p==0) {
+      d1page();
+      button=digitalRead(2);
+      /*Serial.print("button value=");
+      Serial.print(button);
+      Serial.println();*/
+      if(z==0 && button==LOW){
+        l1val=drinksel(l1);
+      }
+      if(z==1 && button==LOW){
+        l2val=drinksel(l2);
+      }
+      if(z==2 && button==LOW){
+        l3val=drinksel(l3);
+      }
+      //d1addr=addr;
+      EEPROM.write(d1addr,l1val);
+      //d1amt[0]=d1addr;
+      //d1addr=d1addr+4;
+      EEPROM.write(d1addr+4,l2val);
+      //d1amt[1]=addr;
+      //d1addr=d1addr+4;
+      EEPROM.write(d1addr+8,l3val);
+      //d1amt[2]=addr;
+      //addr=d1addr+4;
+      button=1;
+      //l1val=0;
+      //l2val=0;
+      //l3val=0;
+      if(z>2) z=0;
+      if(z<0) z=2;
+    }
+    if(p==1) {
+      d2page();
+      button=digitalRead(2);
+      /*Serial.print("button value=");
+      Serial.print(button);
+      Serial.println();*/
+      if(z==0 && button==LOW){
+        l1val=drinksel(l1);
+      }
+      if(z==1 && button==LOW){
+        l2val=drinksel(l2);
+      }
+      if(z==2 && button==LOW){
+        l3val=drinksel(l3);
+      }
+      //d2addr=addr;
+      EEPROM.write(d2addr,l1val);
+      //d2amt[0]=addr;
+      //d2addr=d2addr+4;
+      EEPROM.write(d2addr+4,l2val);
+      //d2amt[1]=addr;
+      //d2addr=d2addr+4;
+      EEPROM.write(d2addr+8,l3val);
+      //d2amt[2]=addr;
+      //addr=d2addr+4;
+      button=1;
+      l1val=0;
+      l2val=0;
+      l3val=0;
+      button=1;
+      if(z>2) z=0;
+      if(z<0) z=2;
+    }
+    if(p==2) {
+      d3page();
+      button=digitalRead(2);
+      /*Serial.print("button value=");
+      Serial.print(button);
+      Serial.println();*/
+      if(z==0 && button==LOW){
+        l1val=drinksel(l1);
+      }
+      if(z==1 && button==LOW){
+        l2val=drinksel(l2);
+      }
+      if(z==2 && button==LOW){
+        l3val=drinksel(l3);
+      }
+      //d3addr=addr;
+      EEPROM.write(d3addr,l1val);
+      //d3amt[0]=addr;
+      //d3addr=d3addr+4;
+      EEPROM.write(d3addr+4,l2val);
+      //d3amt[1]=addr;
+      //d3addr=d3addr+4;
+      EEPROM.write(d3addr+8,l3val);
+      //d3amt[2]=addr;
+      //addr=d3addr+4;
+      button=1;
+      l1val=0;
+      l2val=0;
+      l3val=0;
+      button=1;
+      if(z>2) z=0;
+      if(z<0) z=2;
+    }
+    if(p==3) {
+      d4page();
+      button=digitalRead(2);
+      /*Serial.print("button value=");
+      Serial.print(button);
+      Serial.println();*/
+      if(z==0 && button==LOW){
+        l1val=drinksel(l1);
+      }
+      if(z==1 && button==LOW){
+        l2val=drinksel(l2);
+      }
+      if(z==2 && button==LOW){
+        l3val=drinksel(l3);
+      }
+      //d4addr=addr;
+      EEPROM.write(d4addr,l1val);
+      //d4amt[0]=addr;
+      //d4addr=d4addr+4;
+      EEPROM.write(d4addr+4,l2val);
+      //d4amt[1]=addr;
+      //d4addr=d4addr+4;
+      EEPROM.write(d4addr+8,l3val);
+      //d4amt[2]=addr;
+      //addr=d4addr+4;
+      button=1;
+      l1val=0;
+      l2val=0;
+      l3val=0;
+      button=1;
+      if(z>2) z=0;
+      if(z<0) z=2;
+    }
+    if(p==4) {
+      d5page();
+      button=digitalRead(2);
+      /*Serial.print("button value=");
+      Serial.print(button);
+      Serial.println();*/
+      if(z==0 && button==LOW){
+        l1val=drinksel(l1);
+      }
+      if(z==1 && button==LOW){
+        l2val=drinksel(l2);
+      }
+      if(z==2 && button==LOW){
+        l3val=drinksel(l3);
+      }
+      //d5addr=addr;
+      EEPROM.write(d5addr,l1val);
+      //d1amt[0]=addr;
+      //d5addr=d5addr+4;
+      EEPROM.write(d5addr+4,l2val);
+      //d1amt[1]=addr;
+      //d5addr=d5addr+4;
+      EEPROM.write(d5addr+8,l3val);
+      //d1amt[2]=addr;
+      //addr=d5addr+4;
+      button=1;
+      l1val=0;
+      l2val=0;
+      l3val=0;
+      button=1;
+      if(z>2) z=0;
+      if(z<0) z=2;
+    }
+    if(p==5) {
+      d6page();
+      button=digitalRead(2);
+      /*Serial.print("button value=");
+      Serial.print(button);
+      Serial.println();*/
+      if(z==0 && button==LOW){
+        l1val=drinksel(l1);
+      }
+      if(z==1 && button==LOW){
+        l2val=drinksel(l2);
+      }
+      if(z==2 && button==LOW){
+        l3val=drinksel(l3);
+      }
+      //d6addr=addr;
+      EEPROM.write(d6addr,l1val);
+      //d1amt[0]=addr;
+      //d6addr=d6addr+4;
+      EEPROM.write(d6addr+4,l2val);
+      //d1amt[1]=addr;
+      //d6addr=d6addr+4;
+      EEPROM.write(d6addr+8,l3val);
+      //d1amt[2]=addr;
+      //addr=d6addr+4;
+      button=1;
+      l1val=0;
+      l2val=0;
+      l3val=0;
+      button=1;
+      if(z>2) z=0;
+      if(z<0) z=2;
+    }
+    if(p>5) p=0;
+    if(p<0) break;
+  }
+  /*display.println("done");
+  display.display();
+  delay(1000);*/
+  display.clearDisplay();
+}
+
+void menu(void){
+  display.clearDisplay();
+  display.setCursor(0,0);
+  if(m==0) display.print("->Create Drink\n");
+  else display.print("  Create Drink\n");
+  if(m==1) display.print("->Make Drink\n");
+  else display.print("  Make Drink\n");
+  if(m==2) display.print("->Modify Drink XX\n");
+  else display.print("  Modify Drink XX\n");
+  display.display();
+}
+
+void checkDrink(String d){
+  if(d==d1){
+    l1val=EEPROM.read(d1addr);
+    addr=d1addr+4;
+    l2val=EEPROM.read(addr);
+    addr=addr+4;
+    l3val=EEPROM.read(addr);
+    makeDrink(l1val,l2val,l3val);
+    Serial.print("Drink 1: ");
+    Serial.print("l1val= ");
+    Serial.print(l1val,DEC);
+    Serial.print("  l2val= ");
+    Serial.print(l2val,DEC);
+    Serial.print("  l3val= ");
+    Serial.print(l3val,DEC);
+    Serial.println();
+  }
+  if(d==d2){
+    l1val=EEPROM.read(d2addr);
+    addr=d2addr+4;
+    l2val=EEPROM.read(addr);
+    addr=addr+4;
+    l3val=EEPROM.read(addr);
+    makeDrink(l1val,l2val,l3val);
+    Serial.print("Drink 2: ");
+    Serial.print("l1val= ");
+    Serial.print(l1val);
+    Serial.print("  l2val= ");
+    Serial.print(l2val);
+    Serial.print("  l3val= ");
+    Serial.print(l3val);
+    Serial.println();
+  }
+  if(d==d3){
+    l1val=EEPROM.read(d3addr);
+    addr=d3addr+4;
+    l2val=EEPROM.read(addr);
+    addr=addr+4;
+    l3val=EEPROM.read(addr);
+    makeDrink(l1val,l2val,l3val);
+    Serial.print("Drink 3: ");
+    Serial.print("l1val= ");
+    Serial.print(l1val);
+    Serial.print("  l2val= ");
+    Serial.print(l2val);
+    Serial.print("  l3val= ");
+    Serial.print(l3val);
+    Serial.println();
+  }
+  if(d==d4){
+    l1val=EEPROM.read(d4addr);
+    addr=d4addr+4;
+    l2val=EEPROM.read(addr);
+    addr=addr+4;
+    l3val=EEPROM.read(addr);
+    makeDrink(l1val,l2val,l3val);
+    Serial.print("Drink 4: ");
+    Serial.print("l1val= ");
+    Serial.print(l1val);
+    Serial.print("  l2val= ");
+    Serial.print(l2val);
+    Serial.print("  l3val= ");
+    Serial.print(l3val);
+    Serial.println();
+  }
+  if(d==d5){
+    l1val=EEPROM.read(d5addr);
+    addr=d5addr+4;
+    l2val=EEPROM.read(addr);
+    addr=addr+4;
+    l3val=EEPROM.read(addr);
+    makeDrink(l1val,l2val,l3val);
+    Serial.print("Drink 5: ");
+    Serial.print("l1val= ");
+    Serial.print(l1val);
+    Serial.print("  l2val= ");
+    Serial.print(l2val);
+    Serial.print("  l3val= ");
+    Serial.print(l3val);
+    Serial.println();
+  }
+  if(d==d6){
+    l1val=EEPROM.read(d6addr);
+    addr=d6addr+4;
+    l2val=EEPROM.read(addr);
+    addr=addr+4;
+    l3val=EEPROM.read(addr);
+    makeDrink(l1val,l2val,l3val);
+    Serial.print("Drink 6: ");
+    Serial.print("l1val= ");
+    Serial.print(l1val);
+    Serial.print("  l2val= ");
+    Serial.print(l2val);
+    Serial.print("  l3val= ");
+    Serial.print(l3val);
+    Serial.println();
+  }
+  l1val=0;
+  l2val=0;
+  l3val=0;
+}
+
+void makeDrink(int liq1,int liq2,int liq3){
+  for(int x=0;x<liq1;x++){
+    digitalWrite(lmotor, LOW);
+    delay(8000);
+    digitalWrite(lmotor,HIGH);
+  }
+
+  for(int y=0;y<liq2;y++){
+    digitalWrite(mmotor, LOW);
+    delay(8000);
+    digitalWrite(mmotor,HIGH);
+  }
+
+  for(int z=0;z<liq3;z++){
+    digitalWrite(rmotor, LOW);
+    delay(8000);
+    digitalWrite(rmotor,HIGH);
+  }
+}
+
+void menu1(void){
+  display.clearDisplay();
+  m=0;
+  //button=0;
+  display.setCursor(0,0);
+  display.print("Drinks ");
+  display.println();
+  for(;;){
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.print("Drinks ");
+    display.println();
+    anaControl();
+    if(xval<=100) {display.clearDisplay(); break;}
+    if(yval>=950) m--;
+    if(yval<=100) m++;
+    
+    button=digitalRead(2);
+    
+    if(m==0) {
+      display.print("->Drink 1");
+      if(m==0 && button==LOW) {
+        checkDrink(d1);
+        button=HIGH;
+      }
+    }
+      else display.print("  Drink 1");
+    
+    if(m==1) {
+      display.print("->Drink 2\n");
+      if(m==1 && button==LOW) {
+        checkDrink(d2);
+        button=HIGH;
+      }
+    }
+      else display.print("  Drink 2\n");
+      
+    if(m==2) {
+      display.print("->Drink 3");
+      if(m==2 && button==LOW) {
+        checkDrink(d3);
+        button=HIGH;
+      }
+    }
+      else display.print("  Drink 3");
+      
+    if(m==3) {
+      display.print("->Drink 4\n");
+      if(m==3 && button==LOW) {
+        checkDrink(d4);
+        button=HIGH;
+      }
+    }
+      else display.print("  Drink 4\n");
+      
+    if(m==4) {
+      display.print("->Drink 5");
+      if(m==4 && button==LOW) {
+        checkDrink(d5);
+        button=HIGH;
+      }
+    }
+      else display.print("  Drink 5");
+      
+    if(m==5) {
+      display.print("->Drink 6\n");
+      if(m==5 && button==LOW) {
+        checkDrink(d6);
+        button=HIGH;
+      }
+    }
+      else display.print("  Drink 6\n");
+      
+    if(m<0) m=5;
+    if(m>5) m=0;
+    display.display();
+  }
+  
+}
+
+void d1page(void){
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print("Drink 1");
+  display.println();
+  if(z==0) display.print("->liquid 1\n");
+  else display.print("  liquid 1\n");
+  if(z==1) display.print("->liquid 2\n");
+  else display.print("  liquid 2\n");
+  if(z==2) display.print("->liquid 3\n");
+  else display.print("  liquid 3\n");
+  display.display();
+}
+
+int drinksel(String l){
+  int amt=0;
+  display.clearDisplay();
+  delay(50);
+  for(;;){
+  display.clearDisplay();
+  display.setCursor(0,0);
+  //display.print(l);
+  //display.print(" amount");
+  //display.println();
+  display.print("Increase ");
+  display.print(l);
+  display.print(" amount by 0.5 oz.");
+  display.println();
+  display.display();
+  int lsel;
+  lsel=digitalRead(2);
+  if(lsel==0){
+     Serial.print(l);
+     Serial.print(" incremented by 0.5 oz.");
+     Serial.println();
+     /*noInterrupts();
+     //(insert number of incremented oz of liquid to instuct the pump to pump);***
+     interrupts();*/
+     amt=amt+1;
+  }
+  lsel=1;
+  anaControl();
+  if(xval<=100) break;
+  }
+  return amt;
+}
+
+void d2page(void){
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print("Drink 2");
+  display.println();
+  if(z==0) display.print("->liquid 1\n");
+  else display.print("  liquid 1\n");
+  if(z==1) display.print("->liquid 2\n");
+  else display.print("  liquid 2\n");
+  if(z==2) display.print("->liquid 3\n");
+  else display.print("  liquid 3\n");
+  display.display();
+}
+
+void d3page(void){
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print("Drink 3");
+  display.println();
+  if(z==0) display.print("->liquid 1\n");
+  else display.print("  liquid 1\n");
+  if(z==1) display.print("->liquid 2\n");
+  else display.print("  liquid 2\n");
+  if(z==2) display.print("->liquid 3\n");
+  else display.print("  liquid 3\n");
+  display.display();
+}
+
+void d4page(void){
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print("Drink 4");
+  display.println();
+  if(z==0) display.print("->liquid 1\n");
+  else display.print("  liquid 1\n");
+  if(z==1) display.print("->liquid 2\n");
+  else display.print("  liquid 2\n");
+  if(z==2) display.print("->liquid 3\n");
+  else display.print("  liquid 3\n");
+  display.display();
+}
+
+void d5page(void){
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print("Drink 5");
+  display.println();
+  if(z==0) display.print("->liquid 1\n");
+  else display.print("  liquid 1\n");
+  if(z==1) display.print("->liquid 2\n");
+  else display.print("  liquid 2\n");
+  if(z==2) display.print("->liquid 3\n");
+  else display.print("  liquid 3\n");
+  display.display();
+}
+
+void d6page(void){
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print("Drink 6");
+  display.println();
+  if(z==0) display.print("->liquid 1\n");
+  else display.print("  liquid 1\n");
+  if(z==1) display.print("->liquid 2\n");
+  else display.print("  liquid 2\n");
+  if(z==2) display.print("->liquid 3\n");
+  else display.print("  liquid 3\n");
+  display.display();
+}
+
+void anaControl(void){
+  xval=analogRead(anaX);
+  yval=analogRead(anaY);
+  
+  delay(250);
+
+  /*Serial.print("sensor x= ");
+  Serial.print(xval);
+  Serial.print("\t sensor y= ");
+  Serial.print(yval);
+  Serial.print("\t p= ");
+  Serial.print(p);
+  Serial.print("\t z= ");
+  Serial.print(z);
+  Serial.println();*/
+}
